@@ -26,9 +26,9 @@
             foreach (PropertyInfo property in properties) {
 
                 if (_types.Contains(property.PropertyType) || property.PropertyType.IsEnum) {
+                    
                     object oldValueProp = property.GetValue(oldValue);
                     object newValueProp = property.GetValue(newValue);
-
                     if (!oldValueProp.Equals(newValueProp)) {
                         _diff.Add(new ResultDiff(property.Name, oldValueProp, newValueProp));
                     }
@@ -36,9 +36,9 @@
                 }
 
                 if (!property.PropertyType.IsGenericType && property.PropertyType.IsArray) {
+
                     Array oldDictionary = (Array)property.GetValue(oldValue);
                     Array newDictionary = (Array)property.GetValue(newValue);
-
                     if (oldDictionary != null || newDictionary != null) {
                         var differences = GetArrayDifferences(property.Name, oldDictionary, newDictionary);
                         _diff.AddRange(differences);
@@ -68,9 +68,9 @@
 
                     if (genericType.Name.Contains(typeof(Dictionary<,>).Name) ||
                         genericType.Name.Contains(typeof(IDictionary<,>).Name)) {
+
                         IDictionary oldDictionary = (IDictionary)property.GetValue(oldValue);
                         IDictionary newDictionary = (IDictionary)property.GetValue(newValue);
-
                         if (oldDictionary != null || newDictionary != null) {
                             IEnumerable<ResultDiff> differences = GetDictionaryDifferences(property.Name, oldDictionary, newDictionary);
                             _diff.AddRange(differences);
