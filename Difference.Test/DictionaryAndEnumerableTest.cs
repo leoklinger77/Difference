@@ -46,6 +46,23 @@
         }
 
         [Fact]
+        public void Dictionary_Difference_OldObjNull() {
+            IEnumerable<Guid> newEnumerable = new List<Guid>();
+            ICollection<string> newCollecton = new List<string>();
+            IList<char> newIList = new List<char>();
+            var newValue = new DictionaryAndEnumerableModel(new Dictionary<string, string>() {
+                { "firstName","Leandro" },
+                { "lastName","Klinger" },
+                { "fullname","Leandro Klinger" }
+            }, new HashSet<Guid>(), new string[] { }, newEnumerable, newCollecton, new List<int>() { }, newIList);
+
+            var diffGuid = Difference.Diff(null, newValue);
+
+            Assert.NotEmpty(diffGuid);
+            Assert.Equal(3, diffGuid.Count());
+        }
+
+        [Fact]
         public void HashSet_Difference_old() {
             IEnumerable<Guid> oldEnumerable = new List<Guid>();
             ICollection<string> oldCollecton = new List<string>();

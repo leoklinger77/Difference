@@ -3,14 +3,14 @@ namespace Difference.Test {
     public class PrimitiviTypesTest {
 
         [Fact]
-        public void Guid_Difference() {            
+        public void Guid_Difference() {
             var oldValue = new PrimitiviTypesModel(Guid.NewGuid(), 28, "Leandro Klinger", new DateTime(1995, 09, 11), true, 1.000m, 'L', new TimeSpan(1, 1, 1, 1, 1));
             var newValue = new PrimitiviTypesModel(Guid.NewGuid(), 28, "Leandro Klinger", new DateTime(1995, 09, 11), true, 1.000m, 'L', new TimeSpan(1, 1, 1, 1, 1));
 
             var diffGuid = Difference.Diff(oldValue, newValue);
 
             Assert.NotEmpty(diffGuid);
-            Assert.Single(diffGuid);            
+            Assert.Single(diffGuid);
         }
 
         [Fact]
@@ -68,7 +68,7 @@ namespace Difference.Test {
             var newValue = new PrimitiviTypesModel(id, 28, "Leandro Klinger", new DateTime(1995, 09, 11), true, 1.100m, 'L', new TimeSpan(1, 1, 1, 1, 1));
 
             var diffGuid = Difference.Diff(oldValue, newValue);
-            
+
             Assert.Single(diffGuid);
         }
 
@@ -94,6 +94,15 @@ namespace Difference.Test {
 
             Assert.NotEmpty(diffGuid);
             Assert.Single(diffGuid);
+        }
+
+        [Fact]
+        public void OldNull_Difference() {
+            var newValue = new PrimitiviTypesModel(Guid.NewGuid(), 28, "Leandro Klinger", new DateTime(1995, 09, 11), true, 1.000m, 'L', new TimeSpan(2, 1, 1, 1, 1));
+
+            var diffGuid = Difference.Diff(null, newValue);
+
+            Assert.NotEmpty(diffGuid);            
         }
     }
 }

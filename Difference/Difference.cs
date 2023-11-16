@@ -23,12 +23,24 @@
             Type type = typeof(T);
             PropertyInfo[] properties = type.GetProperties();
 
+            if (oldValue == null && newValue == null) {
+                return _diff;
+            }
+
+            if (oldValue == null && newValue != null) {
+                return DiffOnceObject(properties, newValue);
+            }
+
+            if (newValue == null && oldValue != null) {
+                return DiffOnceObject(properties, oldValue);
+            }
+
             foreach (PropertyInfo property in properties) {
 
                 if (_types.Contains(property.PropertyType) || property.PropertyType.IsEnum) {
-                    
-                    object oldValueProp = property.GetValue(oldValue);
-                    object newValueProp = property.GetValue(newValue);
+
+                    var oldValueProp = property.GetValue(oldValue);
+                    var newValueProp = property.GetValue(newValue);
                     if (!oldValueProp.Equals(newValueProp)) {
                         _diff.Add(new ResultDiff(property.Name, oldValueProp, newValueProp));
                     }
@@ -37,8 +49,8 @@
 
                 if (!property.PropertyType.IsGenericType && property.PropertyType.IsArray) {
 
-                    Array oldDictionary = (Array)property.GetValue(oldValue);
-                    Array newDictionary = (Array)property.GetValue(newValue);
+                    var oldDictionary = (Array)property.GetValue(oldValue);
+                    var newDictionary = (Array)property.GetValue(newValue);
                     if (oldDictionary != null || newDictionary != null) {
                         var differences = GetArrayDifferences(property.Name, oldDictionary, newDictionary);
                         _diff.AddRange(differences);
@@ -57,8 +69,8 @@
                         genericType.Name.Contains(typeof(ICollection<>).Name) ||
                         genericType.Name.Contains(typeof(IReadOnlyCollection<>).Name)) {
 
-                        IEnumerable oldEnumerable = property.GetValue(oldValue) as IEnumerable;
-                        IEnumerable newEnumerable = property.GetValue(newValue) as IEnumerable;
+                        var oldEnumerable = property.GetValue(oldValue) as IEnumerable;
+                        var newEnumerable = property.GetValue(newValue) as IEnumerable;
                         if (oldEnumerable != null || newEnumerable != null) {
                             var differences = GetEnumerableDifferences(property.Name, oldEnumerable.Cast<object>(), newEnumerable.Cast<object>());
                             _diff.AddRange(differences);
@@ -69,8 +81,8 @@
                     if (genericType.Name.Contains(typeof(Dictionary<,>).Name) ||
                         genericType.Name.Contains(typeof(IDictionary<,>).Name)) {
 
-                        IDictionary oldDictionary = (IDictionary)property.GetValue(oldValue);
-                        IDictionary newDictionary = (IDictionary)property.GetValue(newValue);
+                        var oldDictionary = (IDictionary)property.GetValue(oldValue);
+                        var newDictionary = (IDictionary)property.GetValue(newValue);
                         if (oldDictionary != null || newDictionary != null) {
                             IEnumerable<ResultDiff> differences = GetDictionaryDifferences(property.Name, oldDictionary, newDictionary);
                             _diff.AddRange(differences);
@@ -87,24 +99,83 @@
             return _diff;
         }
 
+        private static IEnumerable<ResultDiff> DiffOnceObject(PropertyInfo[] propertyInfo, object value) {
+            foreach (var property in propertyInfo) {
+                if (_types.Contains(property.PropertyType) || property.PropertyType.IsEnum) {
+                    object newValueProp = property.GetValue(value);
+                    _diff.Add(new ResultDiff(property.Name, null, newValueProp));
+
+                    continue;
+                }
+
+                if (!property.PropertyType.IsGenericType && property.PropertyType.IsArray) {
+                    var newDictionary = (Array)property.GetValue(value);
+                    if (newDictionary != null) {
+                        var differences = GetArrayDifferences(property.Name, null, newDictionary);
+                        _diff.AddRange(differences);
+                    }
+                    continue;
+                }
+
+                if (property.PropertyType.IsGenericType) {
+                    Type genericType = property.PropertyType.GetGenericTypeDefinition();
+
+                    if (genericType.Name.Contains(typeof(List<>).Name) ||
+                        genericType.Name.Contains(typeof(HashSet<>).Name) ||
+                        genericType.Name.Contains(typeof(ISet<>).Name) ||
+                        genericType.Name.Contains(typeof(IList<>).Name) ||
+                        genericType.Name.Contains(typeof(IEnumerable<>).Name) ||
+                        genericType.Name.Contains(typeof(ICollection<>).Name) ||
+                        genericType.Name.Contains(typeof(IReadOnlyCollection<>).Name)) {
+
+                        var newEnumerable = property.GetValue(value) as IEnumerable;
+                        if (newEnumerable != null) {
+                            var differences = GetEnumerableDifferences(property.Name, null, newEnumerable.Cast<object>());
+                            _diff.AddRange(differences);
+                        }
+                        continue;
+                    }
+
+                    if (genericType.Name.Contains(typeof(Dictionary<,>).Name) ||
+                        genericType.Name.Contains(typeof(IDictionary<,>).Name)) {
+
+                        var newDictionary = (IDictionary)property.GetValue(value);
+                        if (newDictionary != null) {
+                            IEnumerable<ResultDiff> differences = GetDictionaryDifferences(property.Name, null, newDictionary);
+                            _diff.AddRange(differences);
+                        }
+                        continue;
+                    }
+                } else {
+                    if (property.PropertyType.IsClass) {
+
+                        DiffOnceObject(property.GetValue(value).GetType().GetProperties(), property.GetValue(value));
+                    }
+                }
+            }
+            return _diff;
+        }
+
+
+
 
         private static IEnumerable<ResultDiff> GetArrayDifferences(string propertyMainName, Array oldArray, Array newArray) {
             var differences = new List<ResultDiff>();
-            if (oldArray == null && newArray != null) {                
+            if (oldArray == null && newArray != null) {
                 for (int i = 0; i < newArray.Length; i++) {
                     object newValue = newArray.GetValue(i);
-                    differences.Add(new ResultDiff($"[{propertyMainName}-{i}]", newValue, null));                    
+                    differences.Add(new ResultDiff($"[{propertyMainName}-{i}]", newValue, null));
                 }
-                
+
                 return differences;
             }
 
-            if (newArray == null && oldArray != null) {                
+            if (newArray == null && oldArray != null) {
                 for (int i = 0; i < oldArray.Length; i++) {
                     object oldValue = oldArray.GetValue(i);
-                    differences.Add(new ResultDiff($"[{propertyMainName}-{i}]", oldValue, null));                    
+                    differences.Add(new ResultDiff($"[{propertyMainName}-{i}]", oldValue, null));
                 }
-                
+
                 return differences;
             }
 
